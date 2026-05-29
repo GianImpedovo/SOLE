@@ -1,0 +1,10 @@
+# Source documents used only for analysis/reference
+*.pptx
+*.xlsx
+*.xlsm
+*.pod
+
+# Local/runtime noise
+.DS_Store
+Thumbs.db
+*.log
