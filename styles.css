@@ -180,27 +180,50 @@ button {
 
 .landing {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 520px);
-  gap: 34px;
-  align-items: center;
-  max-width: 1180px;
+  grid-template-columns: minmax(0, 720px);
+  gap: 28px;
+  align-content: center;
+  justify-content: center;
+  max-width: 900px;
   min-height: calc(100vh - 70px);
   margin: 0 auto;
   padding: 42px 26px;
 }
 
+.landing-copy {
+  text-align: center;
+}
+
 .landing-copy h1 {
-  max-width: 700px;
-  margin: 0 0 18px;
-  font-size: clamp(42px, 6vw, 74px);
-  line-height: 0.94;
+  max-width: 780px;
+  margin: 0 auto;
+  color: var(--brand);
+  font-size: clamp(58px, 10vw, 112px);
+  line-height: 0.9;
   letter-spacing: 0;
+}
+
+.product-kicker {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.product-subtitle {
+  max-width: 520px;
+  margin: 12px auto 0;
+  color: #53626d;
+  font-size: 18px;
+  line-height: 1.45;
 }
 
 .hero-logo {
   width: 190px;
   height: auto;
-  margin-bottom: 24px;
+  margin: 0 auto 24px;
 }
 
 .landing-copy p {
@@ -237,7 +260,7 @@ button {
 }
 
 .role-panel {
-  padding: 22px;
+  padding: 24px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -330,6 +353,16 @@ button {
   align-items: start;
 }
 
+.admin-orders-grid {
+  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.75fr);
+  align-items: start;
+}
+
+.analysis-grid {
+  grid-template-columns: minmax(320px, 0.75fr) minmax(0, 1fr);
+  align-items: start;
+}
+
 .driver-grid {
   grid-template-columns: minmax(360px, 1fr) minmax(360px, 1fr);
   align-items: start;
@@ -364,6 +397,7 @@ button {
 
 .panel-body {
   padding: 16px;
+  overflow-x: auto;
 }
 
 .kpi-grid {
@@ -371,6 +405,34 @@ button {
   grid-template-columns: repeat(4, minmax(120px, 1fr));
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 5px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  background: #dfe9ed;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.tab {
+  min-height: 36px;
+  padding: 8px 13px;
+  color: #50616d;
+  background: transparent;
+  border-radius: 7px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.tab.active {
+  color: white;
+  background: var(--brand);
 }
 
 .kpi {
@@ -398,6 +460,85 @@ button {
   align-items: center;
   flex-wrap: wrap;
   margin-bottom: 12px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px 11px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.data-table th {
+  color: var(--muted);
+  background: var(--soft);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.data-table tr {
+  transition: background 0.15s ease;
+}
+
+.data-table tbody tr:hover,
+.data-table tbody tr.active {
+  background: #eef8fb;
+}
+
+.data-table td span {
+  color: var(--muted);
+}
+
+.orders-table td:nth-child(2) {
+  min-width: 210px;
+}
+
+.table-select {
+  width: 160px;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+}
+
+.table-btn {
+  min-height: 32px;
+  padding: 6px 10px;
+}
+
+.status-bars {
+  display: grid;
+  gap: 14px;
+}
+
+.status-bar-row span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.bar {
+  height: 10px;
+  margin-top: 8px;
+  overflow: hidden;
+  background: #dfe8ed;
+  border-radius: 999px;
+}
+
+.bar div {
+  height: 100%;
+  min-width: 4px;
+  background: var(--brand);
 }
 
 .field {
@@ -760,6 +901,17 @@ button {
   margin-top: 16px;
 }
 
+.driver-map-block {
+  margin-top: 18px;
+}
+
+.driver-map {
+  min-height: 300px;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
 .route-progress {
   height: 10px;
   overflow: hidden;
@@ -805,6 +957,8 @@ button {
 
 @media (max-width: 1180px) {
   .admin-grid,
+  .admin-orders-grid,
+  .analysis-grid,
   .driver-grid {
     grid-template-columns: 1fr;
   }

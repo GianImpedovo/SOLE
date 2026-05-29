@@ -34,6 +34,7 @@ const seedState = {
   userRole: null,
   selectedOrderId: "PED-1048",
   selectedDriverId: "DRV-01",
+  adminTab: "analysis",
   offline: false,
   syncQueue: [],
   orders: [
@@ -329,28 +330,20 @@ function renderSessionActions() {
 }
 
 function renderLanding() {
-  const m = metrics();
   return `
     <main class="landing">
       <section class="landing-copy">
-        <img class="hero-logo" src="${LOGO_URL}" alt="Enpolex" />
-        <h1>Control operativo de entregas en tiempo real.</h1>
-        <p>
-          SOLE centraliza pedidos, rutas, choferes, estados de entrega y evidencia digital para que Enpolex tenga trazabilidad de la última milla desde despacho hasta cierre de ruta.
-        </p>
-        <div class="hero-metrics">
-          <div class="metric-chip"><strong>${m.total}</strong><span>pedidos del día</span></div>
-          <div class="metric-chip"><strong>${m.inRoute}</strong><span>en operación</span></div>
-          <div class="metric-chip"><strong>${m.delivered}</strong><span>entregados</span></div>
-        </div>
+        <h1>SOLE</h1>
+        <p class="product-kicker">Sistema de Optimización Logística</p>
+        <p class="product-subtitle">Gestión de entregas para administración y choferes.</p>
       </section>
       <section class="role-panel">
         <h2>Ingresar</h2>
         <button class="role-card" onclick="setRole('admin')">
           <div class="role-icon">AD</div>
           <div>
-            <strong>Admin / Backoffice</strong>
-            <span>Planificación, asignación de rutas, monitoreo e indicadores operativos.</span>
+            <strong>Admin</strong>
+            <span>Gestión logística, pedidos, choferes y análisis de entregas.</span>
           </div>
           <strong class="arrow">→</strong>
         </button>
@@ -373,27 +366,171 @@ function renderAdmin() {
     <main class="main">
       <div class="section-header">
         <div>
-          <h2>Backoffice logístico</h2>
-          <p>Pedidos pendientes, rutas activas, choferes y estado operativo de la distribución.</p>
+          <h2>Panel administrativo</h2>
+          <p>Gestión de pedidos, asignación de choferes y análisis operativo de entregas.</p>
         </div>
         <div class="toolbar">
-          <button class="btn" onclick="optimizeRoute()">Optimizar ruta</button>
-          <button class="btn primary" onclick="assignPendingToSelectedDriver()">Asignar pendientes</button>
           <button class="btn ghost" onclick="resetState()">Reiniciar demo</button>
         </div>
       </div>
+      ${renderAdminTabs()}
       <section class="kpi-grid">
         <div class="kpi"><span>Total pedidos</span><strong>${m.total}</strong></div>
         <div class="kpi"><span>En operación</span><strong>${m.inRoute}</strong></div>
         <div class="kpi"><span>Entregados</span><strong>${m.delivered}</strong></div>
         <div class="kpi"><span>Incidencias</span><strong>${m.issues}</strong></div>
       </section>
-      <section class="grid admin-grid">
-        ${renderOrdersPanel()}
-        ${renderMapPanel()}
-        ${renderAdminSidePanel()}
-      </section>
+      ${renderAdminTabContent()}
     </main>
+  `;
+}
+
+function renderAdminTabs() {
+  const tabs = [
+    ["analysis", "Análisis de entregas"],
+    ["orders", "Pedidos"],
+    ["drivers", "Choferes"],
+  ];
+  return `
+    <nav class="tabs" aria-label="Secciones de administración">
+      ${tabs
+        .map(
+          ([id, label]) =>
+            `<button class="tab ${state.adminTab === id ? "active" : ""}" onclick="setAdminTab('${id}')">${label}</button>`,
+        )
+        .join("")}
+    </nav>
+  `;
+}
+
+function renderAdminTabContent() {
+  if (state.adminTab === "orders") return renderAdminOrdersView();
+  if (state.adminTab === "drivers") return renderDriversView();
+  return renderAnalysisView();
+}
+
+function renderAnalysisView() {
+  const byStatus = ["pending", "assigned", "route", "delivered", "issue"].map((status) => {
+    const count = state.orders.filter((order) => order.status === status).length;
+    return { status, count, pct: Math.round((count / state.orders.length) * 100) };
+  });
+  const byDriver = state.drivers.map((driver) => {
+    const orders = routeOrders(driver.id);
+    const delivered = orders.filter((order) => order.status === "delivered").length;
+    const issues = orders.filter((order) => order.status === "issue").length;
+    return { driver, total: orders.length, delivered, issues };
+  });
+  return `
+    <section class="grid analysis-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Estado de entregas</h3>
+          <span class="pill">Día operativo</span>
+        </div>
+        <div class="panel-body">
+          <div class="status-bars">
+            ${byStatus
+              .map(
+                (item) => `
+                  <div class="status-bar-row">
+                    <div class="item-row">
+                      <strong>${statusLabel(item.status)}</strong>
+                      <span>${item.count} pedidos</span>
+                    </div>
+                    <div class="bar"><div style="width:${item.pct}%"></div></div>
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Rendimiento por chofer</h3>
+          <span class="pill">${state.drivers.length} choferes</span>
+        </div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Chofer</th>
+                <th>Ruta</th>
+                <th>Pedidos</th>
+                <th>Entregados</th>
+                <th>Incidencias</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${byDriver
+                .map(
+                  (row) => `
+                    <tr>
+                      <td>${row.driver.name}</td>
+                      <td>${row.driver.route}</td>
+                      <td>${row.total}</td>
+                      <td>${row.delivered}</td>
+                      <td>${row.issues}</td>
+                    </tr>
+                  `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderAdminOrdersView() {
+  return `
+    <section class="grid admin-orders-grid">
+      ${renderOrdersPanel()}
+      ${renderAdminSidePanel()}
+    </section>
+  `;
+}
+
+function renderDriversView() {
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <h3>Choferes y vehículos</h3>
+        <span class="pill">${state.drivers.length} activos</span>
+      </div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Chofer</th>
+              <th>Teléfono</th>
+              <th>Ruta</th>
+              <th>Vehículo</th>
+              <th>Estado</th>
+              <th>Pedidos asignados</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${state.drivers
+              .map((driver) => {
+                const vehicle = vehicleById(driver.vehicleId);
+                return `
+                  <tr>
+                    <td>${driver.name}</td>
+                    <td>${driver.phone}</td>
+                    <td>${driver.route}</td>
+                    <td>${vehicle ? `${vehicle.plate} · ${vehicle.type}` : driver.vehicleId}</td>
+                    <td>${driver.status}</td>
+                    <td>${routeOrders(driver.id).length}</td>
+                  </tr>
+                `;
+              })
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    </section>
   `;
 }
 
@@ -405,22 +542,49 @@ function renderOrdersPanel() {
         <span class="pill">${metrics().pending} pendientes</span>
       </div>
       <div class="panel-body">
-        <div class="field">
-          <label>Chofer seleccionado</label>
-          <select onchange="selectDriver(this.value)">
-            ${state.drivers
-              .map(
-                (driver) =>
-                  `<option value="${driver.id}" ${driver.id === state.selectedDriverId ? "selected" : ""}>${driver.name} · ${driver.route}</option>`,
-              )
-              .join("")}
-          </select>
-        </div>
-        <div class="list">
-          ${state.orders.map(renderOrderCard).join("")}
-        </div>
+        <table class="data-table orders-table">
+          <thead>
+            <tr>
+              <th>Pedido</th>
+              <th>Cliente</th>
+              <th>Paquete</th>
+              <th>Zona</th>
+              <th>Estado</th>
+              <th>Chofer</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${state.orders.map(renderOrderRow).join("")}
+          </tbody>
+        </table>
       </div>
     </div>
+  `;
+}
+
+function renderOrderRow(order) {
+  const active = order.id === state.selectedOrderId ? "active" : "";
+  return `
+    <tr class="${active}" onclick="selectOrder('${order.id}')">
+      <td><strong>${order.id}</strong><br /><span>${order.priority}</span></td>
+      <td>${order.client}<br /><span>${order.address}</span></td>
+      <td>${order.packages} bultos<br /><span>${order.weight}</span></td>
+      <td>${order.zone}</td>
+      <td><span class="status ${statusClass(order.status)}">${statusLabel(order.status)}</span></td>
+      <td onclick="event.stopPropagation()">
+        <select class="table-select" onchange="assignOrderToDriver('${order.id}', this.value)">
+          <option value="">Sin asignar</option>
+          ${state.drivers
+            .map(
+              (driver) =>
+                `<option value="${driver.id}" ${driver.id === order.driverId ? "selected" : ""}>${driver.name}</option>`,
+            )
+            .join("")}
+        </select>
+      </td>
+      <td><button class="btn ghost table-btn" onclick="event.stopPropagation(); selectOrder('${order.id}')">Ver</button></td>
+    </tr>
   `;
 }
 
@@ -466,40 +630,6 @@ function renderOrderCard(order) {
   `;
 }
 
-function renderMapPanel() {
-  const driver = selectedDriver();
-  const orders = routeOrders(driver.id);
-  const points = orders.length ? orders : state.orders.filter((order) => order.status !== "pending").slice(0, 3);
-  const polyline = points.map((order) => `${order.coords.x},${order.coords.y}`).join(" ");
-  return `
-    <div class="panel">
-      <div class="panel-head">
-        <h3>Mapa operativo</h3>
-        <span class="pill">${driver.name} · ${driver.vehicleId}</span>
-      </div>
-      <div class="map-panel">
-        <svg class="route-line" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <polyline points="${polyline}" fill="none" stroke="#176b5b" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 1"></polyline>
-        </svg>
-        ${points
-          .map((order, index) => {
-            const current = order.status === "route" || order.id === state.selectedOrderId ? "current" : "";
-            const done = order.status === "delivered" ? "done" : "";
-            const issue = order.status === "issue" ? "issue" : "";
-            return `<button class="map-stop ${current} ${done} ${issue}" style="left:${order.coords.x}%;top:${order.coords.y}%;" onclick="selectOrder('${order.id}')" title="${order.client}">${index + 1}</button>`;
-          })
-          .join("")}
-        <div class="truck" style="left:${driver.location.x}%;top:${driver.location.y}%;" title="Unidad ${driver.vehicleId}">▣</div>
-        <div class="legend">
-          <span class="pill"><span class="dot"></span>Parada</span>
-          <span class="pill"><span class="dot warn"></span>Actual</span>
-          <span class="pill"><span class="dot danger"></span>Incidencia</span>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
 function renderAdminSidePanel() {
   const order = selectedOrder();
   const driver = order.driverId ? driverById(order.driverId) : null;
@@ -507,7 +637,7 @@ function renderAdminSidePanel() {
   return `
     <div class="panel">
       <div class="panel-head">
-        <h3>Detalle operativo</h3>
+        <h3>Detalle del paquete</h3>
         <span class="status ${statusClass(order.status)}">${statusLabel(order.status)}</span>
       </div>
       <div class="panel-body">
@@ -516,6 +646,8 @@ function renderAdminSidePanel() {
           <div class="detail"><span>Prioridad</span><strong>${order.priority}</strong></div>
           <div class="detail"><span>Cliente</span><strong>${order.client}</strong></div>
           <div class="detail"><span>Zona</span><strong>${order.zone}</strong></div>
+          <div class="detail"><span>Bultos</span><strong>${order.packages}</strong></div>
+          <div class="detail"><span>Peso</span><strong>${order.weight}</strong></div>
           <div class="detail"><span>Chofer</span><strong>${driver ? driver.name : "Sin asignar"}</strong></div>
           <div class="detail"><span>Vehículo</span><strong>${vehicle ? vehicle.plate : "Sin asignar"}</strong></div>
         </div>
@@ -575,11 +707,38 @@ function renderDriver() {
             <div class="list driver-stop-list">
               ${orders.length ? orders.map(renderStopCard).join("") : `<div class="empty">No hay ruta asignada para este chofer.</div>`}
             </div>
+            ${orders.length ? renderDriverRouteMap(driver, orders) : ""}
           </div>
         </div>
         ${renderDriverActionPanel(activeOrder)}
       </section>
     </main>
+  `;
+}
+
+function renderDriverRouteMap(driver, orders) {
+  const polyline = orders.map((order) => `${order.coords.x},${order.coords.y}`).join(" ");
+  return `
+    <div class="driver-map-block">
+      <div class="item-row">
+        <strong>Mapa de ruta</strong>
+        <span class="pill">${driver.route}</span>
+      </div>
+      <div class="map-panel driver-map">
+        <svg class="route-line" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polyline points="${polyline}" fill="none" stroke="#00a6cf" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 1"></polyline>
+        </svg>
+        ${orders
+          .map((order, index) => {
+            const current = order.status === "route" || order.id === state.selectedOrderId ? "current" : "";
+            const done = order.status === "delivered" ? "done" : "";
+            const issue = order.status === "issue" ? "issue" : "";
+            return `<button class="map-stop ${current} ${done} ${issue}" style="left:${order.coords.x}%;top:${order.coords.y}%;" onclick="selectOrder('${order.id}')" title="${order.client}">${index + 1}</button>`;
+          })
+          .join("")}
+        <div class="truck" style="left:${driver.location.x}%;top:${driver.location.y}%;" title="Unidad ${driver.vehicleId}">▣</div>
+      </div>
+    </div>
   `;
 }
 
@@ -680,6 +839,12 @@ function selectOrder(id) {
   render();
 }
 
+function setAdminTab(tab) {
+  state.adminTab = tab;
+  saveState();
+  render();
+}
+
 function selectDriver(id) {
   state.selectedDriverId = id;
   saveState();
@@ -767,7 +932,7 @@ function markIssue(orderId) {
   const order = state.orders.find((item) => item.id === orderId);
   if (!order) return;
   order.status = "issue";
-  order.issue = "Incidencia registrada desde backoffice";
+  order.issue = "Incidencia registrada desde administración";
   addEvent(order, order.issue);
   saveState();
   render();
